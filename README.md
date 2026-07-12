@@ -123,6 +123,33 @@ CloudVault se adapta automaticamente segun tu espacio disponible:
 Con **103 GB** disponibles operas en modo **Full Local**: tus fotos originales
 viven en tu disco con acceso inmediato, y ademas se respaldan cifradas a la nube.
 
+## Interfaz Grafica (GUI)
+
+CloudVault incluye una aplicacion de escritorio moderna con tema morado y negro azabache:
+
+```powershell
+# Instalar dependencias de la GUI
+cd gui
+pip install -r requirements.txt
+
+# Ejecutar la aplicacion
+python app.py
+
+# O compilar como ejecutable
+.\build.exe.ps1
+```
+
+Caracteristicas de la GUI:
+- **Panel de control** con estado de servicios, disco y sincronizacion
+- **Gestion de nubes** con barras de capacidad y verificacion
+- **Sincronizacion** manual/forzada con modo prueba
+- **Editor de configuracion** visual
+- **Visor de logs** en tiempo real con filtros
+- **Restauracion** desde cualquier proveedor de nube
+- **Bandeja del sistema** con icono de nube y menu rapido
+
+Para mas detalles, consulta `gui/README.md`.
+
 ## Costos
 
 **$0** - Todo el stack es open source y usa servicios gratuitos.

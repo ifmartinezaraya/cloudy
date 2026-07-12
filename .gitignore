@@ -22,3 +22,10 @@ desktop.ini
 # Temporal
 *.lock
 scripts/_sync-wrapper.ps1
+
+# GUI
+gui/__pycache__/
+gui/dist/
+gui/build/
+gui/*.spec
+gui/assets/cloud.ico
