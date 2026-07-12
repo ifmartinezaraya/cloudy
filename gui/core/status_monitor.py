@@ -119,12 +119,14 @@ class StatusMonitor:
         Args:
             callback: Funcion que recibe SystemHealth cuando hay cambios.
         """
-        self._callbacks.append(callback)
+        with self._lock:
+            self._callbacks.append(callback)
 
     def remove_callback(self, callback: Callable[[SystemHealth], None]):
         """Elimina un callback registrado."""
-        if callback in self._callbacks:
-            self._callbacks.remove(callback)
+        with self._lock:
+            if callback in self._callbacks:
+                self._callbacks.remove(callback)
 
     def start(self):
         """Inicia el monitoreo periodico en un hilo daemon."""
@@ -168,8 +170,10 @@ class StatusMonitor:
             else:
                 self._set_offline_status(result.error)
 
-        # Notificar callbacks
-        for callback in self._callbacks:
+        # Notificar callbacks (copy-on-iterate for thread safety)
+        with self._lock:
+            callbacks_snapshot = list(self._callbacks)
+        for callback in callbacks_snapshot:
             try:
                 callback(self._health)
             except Exception:

@@ -20,6 +20,7 @@ class SyncView(ctk.CTkFrame):
 
         self.runner = script_runner or ScriptRunner()
         self._is_syncing = False
+        self._sync_process: Optional[object] = None
 
         self._build_ui()
 
@@ -249,8 +250,11 @@ class SyncView(ctk.CTkFrame):
             f"[SYNC] Iniciando sincronizacion "
             f"{'(Dry Run)' if dry_run else ''}...\n"
         )
-        self.runner.sync_cloud(
-            dry_run=dry_run, callback=self._on_sync_complete
+        params = {}
+        if dry_run:
+            params["DryRun"] = True
+        self._sync_process = self.runner.run_cancellable(
+            "sync", params=params, callback=self._on_sync_complete
         )
 
     def _start_force_sync(self):
@@ -263,12 +267,18 @@ class SyncView(ctk.CTkFrame):
             f"[SYNC] Iniciando sincronizacion FORZADA "
             f"{'(Dry Run)' if dry_run else ''}...\n"
         )
-        self.runner.sync_cloud(
-            force=True, dry_run=dry_run, callback=self._on_sync_complete
+        params = {"Force": True}
+        if dry_run:
+            params["DryRun"] = True
+        self._sync_process = self.runner.run_cancellable(
+            "sync", params=params, callback=self._on_sync_complete
         )
 
     def _cancel_sync(self):
-        """Cancela la sincronizacion actual."""
+        """Cancela la sincronizacion actual terminando el subproceso."""
+        if self._sync_process is not None:
+            self._sync_process.cancel()
+            self._sync_process = None
         self._set_syncing(False)
         self._append_log("[SYNC] Sincronizacion cancelada por el usuario.\n")
 

@@ -122,7 +122,7 @@ class CloudVaultApp(ctk.CTk):
         self.tray.start()
 
         # Manejar cierre de ventana
-        self.protocol("WM_DELETE_CLOSE", self._on_close)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _set_window_icon(self):
         """Establece el icono de la ventana."""

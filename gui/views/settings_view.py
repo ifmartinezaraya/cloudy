@@ -5,6 +5,7 @@ con validacion y guardado seguro.
 """
 
 import customtkinter as ctk
+import re
 from typing import Optional
 from ..core.theme import Theme
 from ..core.settings_manager import SettingsManager
@@ -309,8 +310,82 @@ class SettingsView(ctk.CTkFrame):
             elif widget_type == "option":
                 widget.set(str(value))
 
+    # Validation rules for settings keys. Each rule maps a key (or suffix)
+    # to a (validator_function, error_message) pair.
+    _VALIDATION_RULES = {
+        "immich.port": (
+            lambda v: v.isdigit() and 1 <= int(v) <= 65535,
+            "Puerto debe ser un numero entre 1 y 65535"
+        ),
+        "sync.schedule": (
+            lambda v: (
+                len(v.split(":")) == 2 and
+                v.split(":")[0].isdigit() and
+                v.split(":")[1].isdigit() and
+                0 <= int(v.split(":")[0]) <= 23 and
+                0 <= int(v.split(":")[1]) <= 59
+            ),
+            "Hora debe tener formato HH:MM (00:00 - 23:59)"
+        ),
+        "sync.bandwidth_limit": (
+            lambda v: v == "" or (
+                bool(re.match(r'^\d+[MmGgKk]?$', v))
+            ),
+            "Limite de ancho de banda debe ser vacio o formato como 10M, 1G, 500K"
+        ),
+        "sync.transfers": (
+            lambda v: v.isdigit() and 1 <= int(v) <= 64,
+            "Transferencias paralelas debe ser un numero entre 1 y 64"
+        ),
+        "storage.max_local_usage_gb": (
+            lambda v: v.replace(".", "", 1).isdigit() and float(v) > 0,
+            "Uso local maximo debe ser un numero positivo"
+        ),
+        "health.check_interval_minutes": (
+            lambda v: v.isdigit() and 1 <= int(v) <= 1440,
+            "Intervalo de chequeo debe ser entre 1 y 1440 minutos"
+        ),
+    }
+
+    def _validate_settings(self) -> list:
+        """Validates all entry widget values against rules.
+
+        Returns:
+            List of (key, error_message) tuples for each validation failure.
+            Empty list means all values are valid.
+        """
+        errors = []
+        for key, (widget_type, widget) in self._widgets.items():
+            if widget_type != "entry":
+                continue
+            if key not in self._VALIDATION_RULES:
+                continue
+            value = widget.get().strip()
+            # Allow empty values for non-required fields except port
+            if not value and key != "immich.port":
+                continue
+            validator, msg = self._VALIDATION_RULES[key]
+            try:
+                if not validator(value):
+                    errors.append((key, msg))
+            except (ValueError, TypeError, IndexError):
+                errors.append((key, msg))
+        return errors
+
     def _save_settings(self):
-        """Guarda todos los cambios en settings.json."""
+        """Guarda todos los cambios en settings.json con validacion."""
+        # Validate before saving
+        errors = self._validate_settings()
+        if errors:
+            # Show first error to the user
+            _key, msg = errors[0]
+            self.status_msg.configure(
+                text=f"\u2716 {msg}",
+                text_color=Theme.ERROR
+            )
+            self.after(5000, lambda: self.status_msg.configure(text=""))
+            return
+
         for key, (widget_type, widget) in self._widgets.items():
             if widget_type == "entry":
                 value = widget.get().strip()
