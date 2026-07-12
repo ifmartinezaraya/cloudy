@@ -1,0 +1,116 @@
+{
+  "_schema": "cloudvault-settings",
+  "_version": "1.1.0",
+  "_description": "Configuracion centralizada de CloudVault - Edita este archivo para personalizar tu instalacion",
+
+  "general": {
+    "app_name": "CloudVault",
+    "install_path": "C:\\CloudVault",
+    "log_level": "INFO",
+    "language": "es",
+    "auto_start_on_boot": true,
+    "notifications_enabled": true
+  },
+
+  "immich": {
+    "version": "release",
+    "port": 2283,
+    "host": "0.0.0.0",
+    "machine_learning": true,
+    "transcode": {
+      "enabled": true,
+      "codec": "h265",
+      "target_resolution": "1080p",
+      "crf": 28,
+      "preset": "slow",
+      "policy": "higher_than_target"
+    }
+  },
+
+  "storage": {
+    "upload_path": "./upload",
+    "db_path": "./postgres",
+    "thumbs_keep_local": true,
+    "originals_keep_local": true,
+    "originals_keep_local_days": 7,
+    "max_local_usage_gb": 80,
+    "auto_cleanup": true,
+    "cleanup_when_disk_below_gb": 20,
+    "cleanup_schedule": "daily"
+  },
+
+  "cloud": {
+    "enabled": true,
+    "encryption": {
+      "algorithm": "AES-256",
+      "filename_encryption": "standard",
+      "directory_encryption": true
+    },
+    "providers": [
+      {
+        "name": "mega",
+        "type": "mega",
+        "enabled": true,
+        "capacity_gb": 20,
+        "priority": 1,
+        "remote_name": "mega-raw",
+        "crypt_name": "mega-cifrado",
+        "folder": "cloudvault-backup"
+      },
+      {
+        "name": "google-drive",
+        "type": "drive",
+        "enabled": true,
+        "capacity_gb": 15,
+        "priority": 2,
+        "remote_name": "gdrive-raw",
+        "crypt_name": "gdrive-cifrado",
+        "folder": "cloudvault-backup"
+      },
+      {
+        "name": "onedrive",
+        "type": "onedrive",
+        "enabled": true,
+        "capacity_gb": 5,
+        "priority": 3,
+        "remote_name": "onedrive-raw",
+        "crypt_name": "onedrive-cifrado",
+        "folder": "cloudvault-backup"
+      }
+    ],
+    "union_name": "cloudvault-union",
+    "union_policy": {
+      "action": "epall",
+      "create": "epmfs",
+      "search": "ff"
+    }
+  },
+
+  "sync": {
+    "schedule": "02:00",
+    "frequency": "daily",
+    "transfers": 4,
+    "checkers": 8,
+    "retries": 5,
+    "low_level_retries": 10,
+    "min_age_hours": 1,
+    "bandwidth_limit": "",
+    "verify_after_upload": true,
+    "dry_run": true,
+    "task_name": "CloudVault-Sync"
+  },
+
+  "network": {
+    "tailscale_enabled": false,
+    "https_enabled": false,
+    "allowed_networks": ["192.168.0.0/16", "10.0.0.0/8", "100.64.0.0/10"]
+  },
+
+  "health": {
+    "check_interval_minutes": 30,
+    "disk_warning_threshold_percent": 85,
+    "disk_critical_threshold_percent": 95,
+    "notify_on_sync_failure": true,
+    "notify_on_disk_warning": true
+  }
+}

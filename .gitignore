@@ -1,0 +1,24 @@
+# CloudVault - Archivos ignorados por Git
+
+# Datos sensibles
+config/.env
+.env
+
+# Datos de usuario
+upload/
+postgres/
+logs/
+
+# Docker runtime
+docker-compose.yml
+
+# Rclone
+*.conf
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Temporal
+*.lock
+scripts/_sync-wrapper.ps1
