@@ -1,0 +1,28 @@
+{
+  "project_type": "Windows desktop GUI (Python + CustomTkinter) for an existing PowerShell-based encrypted cloud storage system",
+  "language": "Python 3.9+, existing scripts in PowerShell",
+  "build_system": "pip for dependencies, PyInstaller for .exe compilation",
+  "test_framework": "Python syntax validation (ast module) since we cannot install packages in this environment",
+  "build_command": "python3 -m py_compile gui/app.py (syntax check only - full build requires Windows with pip install)",
+  "test_command": "python3 -c \"import ast; ast.parse(open('gui/app.py').read())\" for each .py file",
+  "verification_instructions": "1. Validate all Python files with ast.parse for syntax correctness. 2. Verify file structure matches the plan. 3. Check that all PowerShell script references point to correct paths.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "On Windows: cd CloudVault && pip install -r gui/requirements.txt && python gui/app.py",
+  "environment_constraints": "INTEGRATIONS_ONLY network - cannot install pip packages or pull Docker images. All code must be written and validated via AST/syntax checks only. The GUI is for Windows - uses CustomTkinter, pystray, Pillow which are not available in this sandbox.",
+  "contribution_requirements": "Project uses PowerShell scripts in scripts/ directory. GUI must call these scripts via subprocess. Settings stored in config/settings.json. Logs in logs/ directory.",
+  "key_patterns": "Scripts use common.ps1 library functions. Settings read from config/settings.json. Health checks via lib/health.ps1. Logging via lib/logger.ps1. Docker containers named cloudvault_*. Status script supports -Json flag for machine-readable output.",
+  "relevant_files": [
+    "config/settings.json",
+    "scripts/start-services.ps1",
+    "scripts/stop-services.ps1",
+    "scripts/sync-cloud.ps1",
+    "scripts/status.ps1",
+    "scripts/configure-cloud.ps1",
+    "scripts/restore.ps1",
+    "scripts/schedule-sync.ps1",
+    "scripts/lib/common.ps1",
+    "scripts/lib/health.ps1",
+    "scripts/lib/logger.ps1"
+  ],
+  "directory_structure": "Root has setup.ps1, config/ (settings.json, docker-compose.yml, .env.template), scripts/ (PowerShell scripts with lib/ subfolder), docs/ (Spanish documentation). GUI will be added as gui/ directory at root level."
+}
