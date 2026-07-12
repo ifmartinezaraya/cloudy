@@ -3,12 +3,15 @@
 Punto de entrada de la interfaz grafica de CloudVault.
 Ventana principal con navegacion lateral, cambio de vistas,
 integracion con bandeja del sistema y monitoreo de estado.
+Incluye splash screen, accesos directos y auto-inicio.
 """
 
 import customtkinter as ctk
 import os
 import sys
 import webbrowser
+import threading
+import time
 from typing import Optional, Dict
 
 # Agregar directorio padre al path para imports relativos
@@ -25,6 +28,10 @@ from gui.views.settings_view import SettingsView
 from gui.views.logs_view import LogsView
 from gui.views.restore_view import RestoreView
 from gui.tray import TrayIcon
+from gui.shortcuts import (
+    create_desktop_shortcut, create_startup_shortcut,
+    create_start_menu_shortcut, install_all_shortcuts
+)
 
 
 class SidebarButton(ctk.CTkButton):
@@ -69,7 +76,7 @@ class CloudVaultApp(ctk.CTk):
     WINDOW_SIZE = "1100x700"
     WINDOW_MIN_SIZE = (900, 600)
 
-    def __init__(self):
+    def __init__(self, skip_splash: bool = False):
         super().__init__()
 
         # Configuracion de apariencia
@@ -85,6 +92,27 @@ class CloudVaultApp(ctk.CTk):
         # Cargar icono
         self._set_window_icon()
 
+        # Si hay splash, ocultamos la ventana principal hasta que termine
+        if not skip_splash:
+            self.withdraw()
+            self._show_splash_screen()
+        else:
+            self._initialize_app()
+
+    def _show_splash_screen(self):
+        """Muestra el splash screen con animacion de carga."""
+        from gui.splash import SplashScreen
+        self.splash = SplashScreen(on_complete=self._on_splash_complete)
+
+    def _on_splash_complete(self):
+        """Callback cuando el splash termina."""
+        self._initialize_app()
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _initialize_app(self):
+        """Inicializa todos los componentes de la aplicacion."""
         # Inicializar componentes core
         self.settings = SettingsManager()
         self.runner = ScriptRunner(
@@ -123,6 +151,9 @@ class CloudVaultApp(ctk.CTk):
 
         # Manejar cierre de ventana
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Crear accesos directos en primera ejecucion
+        self._check_first_run()
 
     def _set_window_icon(self):
         """Establece el icono de la ventana."""
@@ -368,12 +399,154 @@ class CloudVaultApp(ctk.CTk):
         else:
             self._quit_app()
 
+    def _check_first_run(self):
+        """Verifica si es la primera ejecucion y ofrece crear accesos directos."""
+        marker_path = os.path.join(
+            self.settings.install_path_setting, ".first_run_done"
+        )
+        if os.path.exists(marker_path):
+            return
+
+        # Mostrar dialogo de primera ejecucion despues de un momento
+        self.after(1500, self._show_first_run_dialog)
+
+    def _show_first_run_dialog(self):
+        """Muestra dialogo para crear accesos directos."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Bienvenido a CloudVault")
+        dialog.geometry("500x380")
+        dialog.configure(fg_color=Theme.BG_CARD)
+        dialog.resizable(False, False)
+        dialog.grab_set()
+        dialog.attributes("-topmost", True)
+
+        # Centrar
+        dialog.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() - 500) // 2
+        y = self.winfo_y() + (self.winfo_height() - 380) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Icono
+        ctk.CTkLabel(
+            dialog, text="\u2601",
+            font=(Theme.FONT_FAMILY, 48),
+            text_color=Theme.PURPLE
+        ).pack(pady=(24, 8))
+
+        # Titulo
+        ctk.CTkLabel(
+            dialog, text="Bienvenido a CloudVault!",
+            font=Theme.font(22, "bold"),
+            text_color=Theme.TEXT_PRIMARY
+        ).pack(pady=(0, 4))
+
+        ctk.CTkLabel(
+            dialog,
+            text="Tu nube personal cifrada esta lista.\n"
+                 "Quieres crear accesos directos?",
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            text_color=Theme.TEXT_SECONDARY,
+            justify="center"
+        ).pack(pady=(0, 16))
+
+        # Opciones de accesos directos
+        options_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        options_frame.pack(fill="x", padx=40, pady=8)
+
+        self._shortcut_desktop = ctk.BooleanVar(value=True)
+        self._shortcut_startup = ctk.BooleanVar(value=True)
+        self._shortcut_startmenu = ctk.BooleanVar(value=True)
+
+        ctk.CTkCheckBox(
+            options_frame,
+            text="  Acceso directo en el Escritorio",
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            text_color=Theme.TEXT_PRIMARY,
+            variable=self._shortcut_desktop,
+            fg_color=Theme.PURPLE,
+            hover_color=Theme.PURPLE_HOVER,
+            checkmark_color=Theme.TEXT_PRIMARY
+        ).pack(fill="x", pady=4)
+
+        ctk.CTkCheckBox(
+            options_frame,
+            text="  Iniciar automaticamente con Windows",
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            text_color=Theme.TEXT_PRIMARY,
+            variable=self._shortcut_startup,
+            fg_color=Theme.PURPLE,
+            hover_color=Theme.PURPLE_HOVER,
+            checkmark_color=Theme.TEXT_PRIMARY
+        ).pack(fill="x", pady=4)
+
+        ctk.CTkCheckBox(
+            options_frame,
+            text="  Agregar al Menu Inicio",
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            text_color=Theme.TEXT_PRIMARY,
+            variable=self._shortcut_startmenu,
+            fg_color=Theme.PURPLE,
+            hover_color=Theme.PURPLE_HOVER,
+            checkmark_color=Theme.TEXT_PRIMARY
+        ).pack(fill="x", pady=4)
+
+        # Botones
+        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=40, pady=(20, 16))
+
+        ctk.CTkButton(
+            btn_frame, text="Omitir", width=120,
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            fg_color=Theme.BG_DARK, hover_color=Theme.BG_HOVER,
+            height=38,
+            command=lambda: self._complete_first_run(dialog, skip=True)
+        ).pack(side="left")
+
+        ctk.CTkButton(
+            btn_frame, text="\u2714 Crear Accesos Directos", width=200,
+            font=Theme.font(Theme.FONT_SIZE_BODY),
+            fg_color=Theme.PURPLE, hover_color=Theme.PURPLE_HOVER,
+            height=38,
+            command=lambda: self._complete_first_run(dialog, skip=False)
+        ).pack(side="right")
+
+    def _complete_first_run(self, dialog, skip: bool = False):
+        """Completa la configuracion de primera ejecucion."""
+        install_path = self.settings.install_path_setting
+
+        if not skip:
+            # Crear accesos directos seleccionados
+            if self._shortcut_desktop.get():
+                create_desktop_shortcut(install_path, use_exe=True)
+            if self._shortcut_startup.get():
+                create_startup_shortcut(install_path, use_exe=True)
+            if self._shortcut_startmenu.get():
+                create_start_menu_shortcut(install_path, use_exe=True)
+
+            self.tray.notify(
+                "CloudVault",
+                "Accesos directos creados correctamente"
+            )
+
+        # Marcar primera ejecucion completada
+        marker_path = os.path.join(install_path, ".first_run_done")
+        try:
+            os.makedirs(os.path.dirname(marker_path), exist_ok=True)
+            with open(marker_path, "w") as f:
+                f.write("done")
+        except OSError:
+            pass
+
+        dialog.destroy()
+
     def _quit_app(self):
         """Cierra la aplicacion completamente."""
         # Detener monitor
-        self.monitor.stop()
+        if hasattr(self, 'monitor'):
+            self.monitor.stop()
         # Detener tray
-        self.tray.stop()
+        if hasattr(self, 'tray'):
+            self.tray.stop()
         # Cerrar ventana
         self.quit()
         self.destroy()
@@ -381,7 +554,10 @@ class CloudVaultApp(ctk.CTk):
 
 def main():
     """Punto de entrada principal de la aplicacion."""
-    app = CloudVaultApp()
+    # Verificar si se paso --no-splash
+    skip_splash = "--no-splash" in sys.argv
+
+    app = CloudVaultApp(skip_splash=skip_splash)
     app.mainloop()
 
 

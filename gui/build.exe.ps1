@@ -80,6 +80,8 @@ $pyinstallerArgs = @(
     "--hidden-import=customtkinter",
     "--hidden-import=pystray",
     "--hidden-import=PIL",
+    "--hidden-import=gui.splash",
+    "--hidden-import=gui.shortcuts",
     "--collect-all=customtkinter"
 )
 
