@@ -1,7 +1,7 @@
 @echo off
 :: ============================================================
-:: CloudVault - ABRIR LA APP
-:: Solo haz doble clic!
+:: CloudVault - ABRIR
+:: Doble clic para iniciar todo
 :: ============================================================
 
 cd /d "%~dp0"
@@ -9,16 +9,21 @@ cd /d "%~dp0"
 :: Verificar Docker
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
-    echo.
-    echo   Abriendo Docker Desktop, espera un momento...
-    echo.
-    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-    timeout /t 30 /nobreak >nul
+    echo   Abriendo Docker Desktop...
+    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe" 2>nul
+    echo   Esperando 45 segundos...
+    timeout /t 45 /nobreak >nul
 )
 
 :: Iniciar servicios
-echo   Iniciando CloudVault...
 docker compose up -d 2>nul
 
-:: Abrir la app
-start "" python "%~dp0gui\app.py"
+:: Abrir navegador
+timeout /t 10 /nobreak >nul
+start http://localhost:2283
+
+echo.
+echo   CloudVault esta corriendo!
+echo   Navegador abierto en: http://localhost:2283
+echo.
+pause
