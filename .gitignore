@@ -10,7 +10,7 @@ postgres/
 logs/
 
 # Docker runtime
-docker-compose.yml
+# (docker-compose.yml is NOT ignored - it's needed for install)
 
 # Rclone
 *.conf
